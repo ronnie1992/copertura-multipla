@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Copertura Multipla</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script type="module">
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  window._fbModules = { initializeApp, getFirestore, doc, setDoc, onSnapshot };
+</script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f5f6fa;color:#1a1d2e;min-height:100vh;padding:2rem 1rem 6rem}
+.wrap{max-width:920px;margin:0 auto}
+h1{font-size:clamp(1.4rem,4vw,2rem);font-weight:700;letter-spacing:-.03em;color:#0d1020;margin-bottom:.3rem}
+h1 em{color:#8890aa;font-style:normal;font-weight:300}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#3d7fff;margin-bottom:.5rem;display:flex;align-items:center;gap:7px}
+.eyebrow::before{content:'';width:14px;height:2px;background:#3d7fff;border-radius:2px}
+header{padding-bottom:1.5rem;border-bottom:1.5px solid #e2e5ef;margin-bottom:1.5rem}
+.sep{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.14em;text-transform:uppercase;color:#9ba3bb;margin:1.5rem 0 .6rem;display:flex;align-items:center;gap:8px}
+.sep::after{content:'';flex:1;height:1px;background:#e2e5ef}
+.card{background:#fff;border:1px solid #e2e5ef;border-radius:14px;padding:1.4rem;margin-bottom:.8rem;box-shadow:0 1px 3px rgba(0,0,0,.05)}
+.card-warn{border-color:#f5c542;background:#fffdf0}
+.card-ok{border-color:#7de0b0;background:#f0fff8}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:620px){.g2,.g3{grid-template-columns:1fr 1fr}}
+label{font-size:10.5px;color:#8890aa;font-family:'IBM Plex Mono',monospace;letter-spacing:.04em;margin-bottom:5px;display:block}
+.tag{font-size:9px;padding:2px 6px;border-radius:4px;margin-left:4px;vertical-align:middle;letter-spacing:.04em;font-weight:600}
+.tl{background:#f0f1f5;color:#9ba3bb;border:1px solid #dde0ea}
+.ty{background:#fff7e0;color:#b8860b;border:1px solid #f5c542}
+input[type=number],input[type=text],input[type=date],input[type=time]{width:100%;background:#f8f9fc;border:1.5px solid #dde0ea;border-radius:8px;color:#1a1d2e;font-size:13px;padding:8px 11px;outline:none;transition:border-color .15s,box-shadow .15s;font-family:'IBM Plex Mono',monospace}
+input[type=text]{font-family:'Inter',sans-serif}
+input:focus{border-color:#3d7fff;box-shadow:0 0 0 3px rgba(61,127,255,.12);background:#fff}
+input.ilay{border-color:#e8c640;background:#fffdf0;color:#7a5800}
+input.ilay:focus{border-color:#c9a800;box-shadow:0 0 0 3px rgba(245,197,66,.18)}
+input:disabled{opacity:.38;cursor:not-allowed;background:#f0f1f5;pointer-events:none}
+input[type=number]{-moz-appearance:textfield}
+input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none}
+.mv{background:#f8f9fc;border:1px solid #e8eaf2;border-radius:8px;padding:.8rem 1rem}
+.ml{font-size:9.5px;color:#9ba3bb;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
+.mval{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;color:#1a1d2e}
+.green{color:#16a25a}.red{color:#dc3545}.blue{color:#3d7fff}
+.rbar{display:flex;align-items:center;justify-content:space-between;background:#eef4ff;border:1px solid #c0d4ff;border-radius:8px;padding:.8rem 1rem;margin-top:12px;gap:10px}
+.rbar-l{font-size:11.5px;color:#5a6a99}
+.rbar-v{font-family:'IBM Plex Mono',monospace;font-size:16px;font-weight:600;color:#3d7fff;white-space:nowrap}
+.lval{background:#f8f9fc;border:1px solid #e8eaf2;border-radius:8px;padding:8px 11px;font-family:'IBM Plex Mono',monospace;font-size:13px;color:#9ba3bb}
+hr{border:none;border-top:1px solid #eef0f6;margin:1rem 0}
+.ph-hdr{display:flex;align-items:flex-start;gap:10px;margin-bottom:1.1rem}
+.ph-num{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:600;flex-shrink:0;margin-top:2px}
+.ph-blue{background:#3d7fff;color:#fff}
+.ph-yellow{background:#f5c542;color:#4a3800}
+.ph-green{background:#d4f5e5;color:#16a25a;border:1px solid #7de0b0}
+.ph-title{font-size:13.5px;font-weight:600;color:#1a1d2e}
+.ph-sub{font-size:11px;color:#9ba3bb;margin-top:2px}
+.rm-btn{margin-left:auto;background:#fff;border:1px solid #dde0ea;color:#9ba3bb;border-radius:7px;padding:3px 11px;font-size:10.5px;cursor:pointer;font-family:'IBM Plex Mono',monospace;flex-shrink:0}
+.rm-btn:hover{border-color:#dc3545;color:#dc3545}
+.add-btn{width:100%;padding:.8rem;background:#fff;border:1.5px dashed #dde0ea;color:#9ba3bb;border-radius:12px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.07em;cursor:pointer;transition:all .2s;margin-bottom:.8rem}
+.add-btn:hover{border-color:#3d7fff;color:#3d7fff;background:#eef4ff}
+.badge{display:inline-flex;align-items:center;font-size:10px;font-family:'IBM Plex Mono',monospace;padding:3px 8px;border-radius:5px;white-space:nowrap}
+.bd-idle{background:#f0f1f5;color:#8890aa;border:1px solid #dde0ea}
+.bd-act{background:#eef4ff;color:#3d7fff;border:1px solid #c0d4ff}
+.bd-soon{background:#fff7e0;color:#b8860b;border:1px solid #f5c542}
+.bd-ring{background:#d4f5e5;color:#16a25a;border:1px solid #7de0b0;font-weight:600;animation:pulse 1.4s ease infinite}
+.bd-last{background:#f0f1f5;color:#c5c9d8;border:1px solid #e2e5ef}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(22,162,90,.5)}70%{box-shadow:0 0 0 7px rgba(22,162,90,0)}100%{box-shadow:0 0 0 0 rgba(22,162,90,0)}}
+.cron-btn{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:5px 13px;border-radius:7px;cursor:pointer;background:#fff;border:1.5px solid #3d7fff;color:#3d7fff;transition:all .15s}
+.cron-btn:hover{background:#eef4ff}
+.cron-btn:disabled{opacity:.5;cursor:not-allowed}
+.lock-btn-g{font-family:'IBM Plex Mono',monospace;font-size:10.5px;padding:6px 14px;border-radius:8px;cursor:pointer;background:#fff;border:1.5px solid #16a25a;color:#16a25a;transition:all .15s}
+.lock-btn-g:hover{background:#d4f5e5}
+.sc-wrap{overflow-x:auto}
+.sc-table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:320px}
+.sc-table th{font-size:9.5px;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:#9ba3bb;padding:0 9px 9px;text-align:center;font-weight:500}
+.sc-table th:first-child{text-align:left}
+.sc-table td{padding:8px 9px;border-bottom:1px solid #f0f1f7;text-align:center;vertical-align:middle}
+.sc-table td:first-child{text-align:left;color:#5a6a99;font-size:11.5px}
+.sc-table tbody tr:last-child td{border-bottom:none}
+.sc-val{font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600}
+.note{font-size:11px;color:#9ba3bb;text-align:center;margin-top:2rem;line-height:2}
+.note strong{color:#5a6a99}
+
+/* ═══ FIREBASE SYNC BAR ═══ */
+.sync-bar{display:flex;align-items:center;gap:10px;padding:.7rem 1rem;border-radius:10px;margin-bottom:.5rem;font-family:'IBM Plex Mono',monospace;font-size:11px;flex-wrap:wrap}
+.sync-bar.sb-off{background:#f0f1f5;border:1px solid #dde0ea;color:#9ba3bb}
+.sync-bar.sb-ok{background:#d4f5e5;border:1px solid #7de0b0;color:#16a25a}
+.sync-bar.sb-err{background:#fde8e8;border:1px solid #f5a0a0;color:#dc3545}
+.sync-bar.sb-sync{background:#eef4ff;border:1px solid #c0d4ff;color:#3d7fff}
+.sync-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.sd-off{background:#c5c9d8}
+.sd-ok{background:#16a25a;box-shadow:0 0 0 3px rgba(22,162,90,.25)}
+.sd-err{background:#dc3545}
+.sd-sync{background:#3d7fff;animation:blink .8s ease infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.sync-bar a{color:inherit;text-decoration:underline;cursor:pointer}
+/* modal Firebase setup */
+.fb-modal{position:fixed;inset:0;background:rgba(13,16,32,.55);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:10000;padding:1rem}
+.fb-modal-box{background:#fff;border-radius:16px;padding:2rem;max-width:480px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.2)}
+.fb-modal h2{font-size:1.1rem;font-weight:700;color:#0d1020;margin-bottom:.4rem}
+.fb-modal p{font-size:12px;color:#7a809a;line-height:1.7;margin-bottom:1rem}
+.fb-modal label{font-size:10px;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:#9ba3bb;margin-bottom:4px;display:block}
+.fb-modal input{width:100%;background:#f8f9fc;border:1.5px solid #dde0ea;border-radius:8px;color:#1a1d2e;font-size:12px;padding:8px 11px;outline:none;font-family:'IBM Plex Mono',monospace;margin-bottom:10px}
+.fb-modal input:focus{border-color:#3d7fff;box-shadow:0 0 0 3px rgba(61,127,255,.12);background:#fff}
+.fb-btn{font-family:'IBM Plex Mono',monospace;font-size:11px;padding:8px 18px;border-radius:8px;border:none;cursor:pointer;transition:all .15s}
+.fb-btn-pri{background:#3d7fff;color:#fff}
+.fb-btn-pri:hover{background:#2563eb}
+.fb-btn-sec{background:#f0f1f5;color:#5a6a99;margin-left:8px}
+.fb-btn-sec:hover{background:#e2e5ef}
+.fb-steps{background:#f8f9fc;border:1px solid #e8eaf2;border-radius:8px;padding:.9rem 1rem;margin-bottom:1rem}
+.fb-steps ol{padding-left:1.2rem;font-size:11.5px;color:#5a6a99;line-height:2}
+.fb-steps code{font-family:'IBM Plex Mono',monospace;background:#eef4ff;color:#3d7fff;padding:1px 5px;border-radius:3px;font-size:11px}
+#toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1a1d2e;color:#fff;border-radius:12px;padding:.9rem 1.3rem;font-family:'IBM Plex Mono',monospace;font-size:13px;box-shadow:0 8px 28px rgba(0,0,0,.2);display:none;align-items:center;gap:12px;z-index:9999;max-width:90vw}
+#toast.show{display:flex}
+#toast button{background:none;border:none;color:#8890aa;font-size:17px;cursor:pointer;padding:0;line-height:1}
+
+/* ═══ RIEPILOGO PARTITE — card orizzontali ═══ */
+.rp-card{background:#fff;border:1.5px solid #e2e5ef;border-radius:13px;padding:1rem 1.2rem;margin-bottom:.6rem;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.rp-card.rp-locked{border-color:#7de0b0;background:#f0fff8}
+.rp-top{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.rp-badge{font-family:'IBM Plex Mono',monospace;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;flex-shrink:0}
+.rp-badge-open{color:#3d7fff;background:#eef4ff;border:1.5px solid #c0d4ff}
+.rp-badge-lock{color:#16a25a;background:#d4f5e5;border:1.5px solid #7de0b0}
+.rp-name{font-size:14px;font-weight:600;color:#1a1d2e;flex:1;min-width:100px;border:none;background:transparent;border-bottom:1.5px solid transparent;padding:2px 4px;outline:none;font-family:'Inter',sans-serif}
+.rp-name:focus{border-bottom-color:#3d7fff;background:#f8f9ff}
+.rp-name:disabled{opacity:.6;pointer-events:none}
+.rp-statetag{font-family:'IBM Plex Mono',monospace;font-size:9.5px;padding:2px 8px;border-radius:4px;white-space:nowrap;flex-shrink:0}
+.rp-statetag-open{background:#f0f1f5;color:#9ba3bb;border:1px solid #dde0ea}
+.rp-statetag-lock{background:#d4f5e5;color:#16a25a;border:1px solid #7de0b0}
+/* riga campi */
+.rp-fields{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.rp-field{display:flex;flex-direction:column;gap:5px}
+.rp-field > span{font-size:9px;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase;color:#9ba3bb;white-space:nowrap}
+/* INPUT QUOTE: grandi, su sfondo colorato, ben cliccabili */
+.rp-q{
+  width:110px;
+  font-size:20px;
+  font-weight:700;
+  padding:10px 12px;
+  border-radius:10px;
+  border:2px solid #c0d4ff;
+  background:#eef4ff;
+  color:#1a1d2e;
+  font-family:'IBM Plex Mono',monospace;
+  outline:none;
+  cursor:text;
+  -moz-appearance:textfield;
+  transition:border-color .15s,box-shadow .15s,background .15s
+}
+.rp-q::-webkit-inner-spin-button{-webkit-appearance:none}
+.rp-q:hover{border-color:#3d7fff;background:#e6eeff}
+.rp-q:focus{border-color:#3d7fff;box-shadow:0 0 0 4px rgba(61,127,255,.18);background:#fff}
+.rp-q.rp-lay{border-color:#e8c640;background:#fff9e0;color:#7a5800}
+.rp-q.rp-lay:hover{border-color:#c9a800;background:#fff5cc}
+.rp-q.rp-lay:focus{border-color:#c9a800;box-shadow:0 0 0 4px rgba(245,197,66,.2);background:#fff}
+.rp-q[disabled]{opacity:.38;cursor:not-allowed;background:#f0f1f5;border-color:#dde0ea;color:#aaa;pointer-events:none}
+/* data/ora */
+.rp-dt{font-size:13px;padding:8px 10px;border-radius:8px;border:1.5px solid #dde0ea;background:#f8f9fc;color:#1a1d2e;font-family:'IBM Plex Mono',monospace;outline:none;transition:border-color .15s}
+.rp-dt:focus{border-color:#3d7fff;box-shadow:0 0 0 3px rgba(61,127,255,.12);background:#fff}
+.rp-dt[disabled]{opacity:.38;cursor:not-allowed;pointer-events:none}
+/* output stake/liability */
+.rp-out{display:flex;flex-direction:column;gap:3px;padding:9px 14px;background:#f8f9fc;border:1px solid #e8eaf2;border-radius:9px;min-width:100px;justify-content:center}
+.rp-out-lbl{font-size:9px;color:#9ba3bb;font-family:'IBM Plex Mono',monospace;letter-spacing:.07em;text-transform:uppercase}
+.rp-out-val{font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:#1a1d2e}
+.rp-out-val.rp-red{color:#dc3545}
+.rp-sep{width:1px;background:#e8eaf2;align-self:stretch;margin:0 2px;flex-shrink:0}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <div class="eyebrow">Matched betting · exchange tool</div>
+  <h1>Copertura Multipla <em>Sequenziale</em></h1>
+</header>
+
+<!-- SYNC BAR -->
+<div id="sync_bar" class="sync-bar sb-off">
+  <div class="sync-dot sd-off" id="sync_dot"></div>
+  <span id="sync_txt">Sincronizzazione cloud disattivata — <a onclick="openFbModal()">configura Firebase</a></span>
+  <button onclick="openFbModal()" style="margin-left:auto;font-family:'IBM Plex Mono',monospace;font-size:10px;padding:3px 10px;border-radius:6px;background:#fff;border:1px solid #dde0ea;color:#5a6a99;cursor:pointer">⚙️ configura</button>
+</div>
+
+<!-- FIREBASE SETUP MODAL -->
+<div id="fb_modal" class="fb-modal" style="display:none">
+  <div class="fb-modal-box">
+    <h2>☁️ Connetti Firebase</h2>
+    <p>Crea un progetto gratuito su <strong>console.firebase.google.com</strong>, poi incolla qui le credenziali. I dati saranno sincronizzati in tempo reale su tutti i device.</p>
+    <div class="fb-steps">
+      <ol>
+        <li>Vai su <strong>console.firebase.google.com</strong> → Crea progetto</li>
+        <li>Aggiungi app web → copia le credenziali <code>firebaseConfig</code></li>
+        <li>Vai su <strong>Firestore Database</strong> → Crea database (modalità test)</li>
+        <li>Incolla i campi qui sotto e salva</li>
+      </ol>
+    </div>
+    <label>API Key</label>
+    <input id="fb_apiKey" placeholder="AIzaSy...">
+    <label>Auth Domain</label>
+    <input id="fb_authDomain" placeholder="mio-progetto.firebaseapp.com">
+    <label>Project ID</label>
+    <input id="fb_projectId" placeholder="mio-progetto">
+    <label>ID documento (es. sessione1 — cambia per avere sessioni separate)</label>
+    <input id="fb_docId" placeholder="sessione1" value="sessione1">
+    <div style="display:flex;align-items:center;margin-top:.5rem">
+      <button class="fb-btn fb-btn-pri" onclick="saveFbCfg()">Connetti e salva</button>
+      <button class="fb-btn fb-btn-sec" onclick="closeFbModal()">Annulla</button>
+      <span id="fb_modal_st" style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#9ba3bb;margin-left:10px"></span>
+    </div>
+    <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e8eaf2;display:flex;gap:8px">
+      <button class="fb-btn fb-btn-sec" onclick="disconnectFb()">Disconnetti</button>
+    </div>
+  </div>
+</div>
+
+<!-- PARAMETRI FISSI -->
+<div class="sep">Parametri fissi</div>
+<div class="card">
+  <div class="g3" style="margin-bottom:12px">
+    <div><label>Puntata (€)</label><input type="number" id="inp_stake" value="10" step="0.5" oninput="calc()"></div>
+    <div><label>Quota multipla totale</label><input type="number" id="inp_multi" value="4.471" step="0.001" oninput="calc()"></div>
+    <div><label>Commissione exchange (%)</label><input type="number" id="inp_comm" value="4.5" step="0.1" oninput="calc()"></div>
+  </div>
+  <div class="g2">
+    <div class="mv"><div class="ml">Vincita multipla lorda</div><div class="mval blue" id="out_gross">—</div></div>
+    <div class="mv"><div class="ml">Profitto multipla netto</div><div class="mval green" id="out_net">—</div></div>
+  </div>
+  <div class="rbar" style="margin-top:10px">
+    <div class="rbar-l">Risultato R equalizzato — uguale per tutti gli esiti</div>
+    <div class="rbar-v" id="R_disp">—</div>
+  </div>
+</div>
+
+<!-- RIEPILOGO PARTITE — le card vengono costruite una volta sola da renderSummary() -->
+<div class="sep">Riepilogo partite</div>
+<div id="rp_wrap"></div>
+<button class="add-btn" onclick="addMatch()">+ aggiungi partita</button>
+
+<!-- SEZIONI BANCATA — ricostruite da renderPhases() -->
+<div id="phases"></div>
+
+<!-- SCENARI -->
+<div class="sep">Riepilogo scenari</div>
+<div class="card">
+  <div class="sc-wrap">
+    <table class="sc-table">
+      <thead id="sc_head"></thead>
+      <tbody id="sc_body"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- IMPOSTAZIONI TELEGRAM -->
+<div class="sep">Impostazioni alert Telegram</div>
+<div class="card">
+  <div class="ph-hdr" style="margin-bottom:1rem">
+    <div class="ph-num ph-blue">🔔</div>
+    <div>
+      <div class="ph-title">Notifiche Telegram</div>
+      <div class="ph-sub">Imposta token e chat ID per ricevere gli alert prima di piazzare ogni bancata</div>
+    </div>
+  </div>
+  <div class="g3" style="margin-bottom:12px">
+    <div style="grid-column:1/3"><label>Bot Token Telegram</label>
+      <input type="text" id="cfg_tg_token" placeholder="1234567890:AAFxxxxx..." oninput="saveCfg()"></div>
+    <div><label>Chat ID Telegram</label>
+      <input type="number" id="cfg_tg_chatid" placeholder="24831926" oninput="saveCfg()"></div>
+  </div>
+  <div class="g2" style="margin-bottom:12px">
+    <div><label>Anticipo alert (ore prima del kick-off)</label>
+      <input type="number" id="cfg_alert_h" value="2" step="0.5" min="0" oninput="saveCfg()"></div>
+    <div><label>API Key cron-job.org</label>
+      <input type="text" id="cfg_cron_key" placeholder="vo9A/SO7vVTZ..." oninput="saveCfg()"></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <button class="cron-btn" onclick="testTG()">📨 Invia messaggio test</button>
+    <span id="tg_test_st" style="font-size:11px;font-family:IBM Plex Mono,monospace;color:#9ba3bb;align-self:center"></span>
+  </div>
+</div>
+
+<div class="note">
+  Gli stake delle fasi bloccate 🔒 sono <strong>congelati</strong>.<br>
+  Commissione exchange applicata sulle vincite delle bancate lay.
+</div>
+</div>
+
+<div id="toast">
+  <span style="font-size:20px">⚠️</span>
+  <span id="toast_msg"></span>
+  <button onclick="hideToast()">✕</button>
+</div>
+
+<script>
+// ══════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════
+var TG_TOKEN   = '8895092968:AAFboYjd0VnZoo121mRftVW-ccRxHPJoM5A';
+var TG_CHAT_ID = '24831926';
+var CRON_KEY   = 'vo9A/SO7vVTZ3aA0kef9hm0VuFLTGfMRk9LgzbvLGJU=';
+var ALERT_DELAY = 2 * 60 * 60 * 1000;
+
+function loadCfg() {
+  try {
+    var s = localStorage.getItem('cov_cfg'); if (!s) return;
+    var c = JSON.parse(s);
+    if (c.tg_token)  TG_TOKEN   = c.tg_token;
+    if (c.tg_chatid) TG_CHAT_ID = c.tg_chatid;
+    if (c.cron_key)  CRON_KEY   = c.cron_key;
+    if (c.alert_h !== undefined) ALERT_DELAY = c.alert_h * 3600000;
+  } catch(e){}
+}
+function saveCfg() {
+  var tok = document.getElementById('cfg_tg_token').value.trim();
+  var chat= document.getElementById('cfg_tg_chatid').value.trim();
+  var ah  = parseFloat(document.getElementById('cfg_alert_h').value) || 2;
+  var ck  = document.getElementById('cfg_cron_key').value.trim();
+  if (tok)  TG_TOKEN   = tok;
+  if (chat) TG_CHAT_ID = chat;
+  if (ck)   CRON_KEY   = ck;
+  ALERT_DELAY = ah * 3600000;
+  try { localStorage.setItem('cov_cfg',JSON.stringify({tg_token:TG_TOKEN,tg_chatid:TG_CHAT_ID,cron_key:CRON_KEY,alert_h:ah})); } catch(e){}
+}
+function populateCfgUI() {
+  document.getElementById('cfg_tg_token').value  = TG_TOKEN;
+  document.getElementById('cfg_tg_chatid').value = TG_CHAT_ID;
+  document.getElementById('cfg_cron_key').value  = CRON_KEY;
+  document.getElementById('cfg_alert_h').value   = ALERT_DELAY / 3600000;
+}
+async function testTG() {
+  var st = document.getElementById('tg_test_st');
+  st.textContent='Invio...'; st.style.color='#9ba3bb';
+  try {
+    var r = await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage',
+      {method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({chat_id:TG_CHAT_ID,text:'✅ Test Copertura Multipla — OK!'})});
+    var d = await r.json();
+    if (d.ok){st.textContent='✅ Inviato!';st.style.color='#16a25a';}
+    else{st.textContent='❌ '+d.description;st.style.color='#dc3545';}
+  } catch(e){st.textContent='❌ '+e.message;st.style.color='#dc3545';}
+}
+
+// ══════════════════════════════════════════════
+// STATO
+// ══════════════════════════════════════════════
+var M = [
+  {name:'Spagna', back:1.90, lay_init:1.99, lay:1.99, date:'2026-06-21', time:'18:00', locked:false, fS:null,fLI:null,fW:null},
+  {name:'Belgio', back:1.42, lay_init:1.50, lay:1.50, date:'2026-06-21', time:'22:00', locked:false, fS:null,fLI:null,fW:null},
+  {name:'Egitto', back:1.57, lay_init:1.67, lay:1.67, date:'2026-06-22', time:'03:00', locked:false, fS:null,fLI:null,fW:null},
+];
+var timers = {};
+
+// ══════════════════════════════════════════════
+// MATEMATICA
+// ══════════════════════════════════════════════
+function compute() {
+  var STAKE = parseFloat(document.getElementById('inp_stake').value) || 0;
+  var MULTI = parseFloat(document.getElementById('inp_multi').value) || 0;
+  var COMM  = (parseFloat(document.getElementById('inp_comm').value) || 0) / 100;
+  var c = 1 - COMM;
+  var n = M.length;
+  var lastLocked = -1;
+  for (var i=0;i<n;i++) if (M[i].locked) lastLocked = i;
+
+  var R;
+  if (lastLocked < 0) {
+    // Nessuna fase bloccata: equalizzazione completa su tutte le partite
+    var K = 0;
+    for (var i=0;i<n;i++) K += (1+K)*(M[i].lay-1)/c;
+    R = STAKE*(MULTI-1-K)/(1+K);
+  } else {
+    // Almeno una fase bloccata.
+    // Il profitto delle fasi bloccate è fisso. Per le fasi ancora aperte
+    // ricalcoliamo R in modo che tutti i loro scenari (bancata vince,
+    // multipla vince) siano equalizzati tra loro con le quote lay AGGIORNATE.
+    //
+    // Dimostrazione:
+    //   S_i = (R + STAKE + cumLI_i) / c   per ogni fase aperta i
+    //   LI_i = S_i * (lay_i - 1)
+    //   totalLI_open = (R + base0) * K_open   dove base0 = STAKE + cumLI_locked
+    //   Equazione multipla: STAKE*(MULTI-1) - cumLI_locked - (R+base0)*K_open = R
+    //   → R = [STAKE*(MULTI-1) - cumLI_locked - base0*K_open] / (1 + K_open)
+    var cumLI_locked = 0;
+    for (var k=0;k<=lastLocked;k++) cumLI_locked += M[k].fLI;
+    var K_open = 0;
+    for (var i=lastLocked+1;i<n;i++) K_open += (1+K_open)*(M[i].lay-1)/c;
+    var base0 = STAKE + cumLI_locked;
+    R = (STAKE*(MULTI-1) - cumLI_locked - base0*K_open) / (1 + K_open);
+  }
+
+  var S=[],LI=[],W=[],cumLI=0;
+  for (var i=0;i<n;i++) {
+    if (M[i].locked) {
+      S.push(M[i].fS); LI.push(M[i].fLI); W.push(M[i].fW);
+      cumLI += M[i].fLI;
+    } else {
+      var Si=(R+STAKE+cumLI)/c, LIi=Si*(M[i].lay-1), Wi=Si*c;
+      S.push(Si); LI.push(LIi); W.push(Wi); cumLI+=LIi;
+    }
+  }
+  return {R:R,S:S,LI:LI,W:W,STAKE:STAKE,MULTI:MULTI,n:n};
+}
+
+// ══════════════════════════════════════════════
+// CALC — aggiorna SOLO gli elementi di output
+// NON tocca mai gli input del riepilogo
+// ══════════════════════════════════════════════
+function calc() {
+  var r = compute();
+  var R=r.R, S=r.S, LI=r.LI, W=r.W, STAKE=r.STAKE, MULTI=r.MULTI, n=r.n;
+
+  // Header
+  set('out_gross','€'+(STAKE*MULTI).toFixed(2));
+  set('out_net','+€'+(STAKE*(MULTI-1)).toFixed(2));
+  var rd=document.getElementById('R_disp');
+  if(rd){rd.textContent=(R>=0?'+':'')+R.toFixed(2)+'€';rd.style.color=R>=0?'#16a25a':'#dc3545';}
+
+  // Riepilogo: aggiorna SOLO i box stake/liability (non gli input quote)
+  for (var i=0;i<n;i++) {
+    set('rp_S'+i, '€'+S[i].toFixed(2));
+    set('rp_L'+i, '-€'+LI[i].toFixed(2));
+  }
+
+  // Sezioni bancata
+  for (var i=0;i<n;i++) {
+    set('S'+i, '€'+S[i].toFixed(2));
+    set('L'+i, '-€'+LI[i].toFixed(2));
+    set('W'+i, '+€'+W[i].toFixed(2));
+    for (var j=i+1;j<n;j++) set('FL'+j+'_'+i,'€'+LI[i].toFixed(2));
+  }
+
+  // Scenari
+  var sh=document.getElementById('sc_head'), sb=document.getElementById('sc_body');
+  if(!sh||!sb) return;
+  var hh='<tr><th style="text-align:left">Scenario</th>';
+  for(var i=0;i<n;i++) hh+='<th>P'+(i+1)+'</th>';
+  hh+='<th>Risultato</th></tr>'; sh.innerHTML=hh;
+  var bh='';
+  var eM=STAKE*(MULTI-1)-LI.reduce(function(a,b){return a+b;},0);
+  bh+='<tr><td>Multipla vince</td>';
+  for(var i=0;i<n;i++) bh+='<td style="color:#16a25a">✓</td>';
+  bh+='<td><span class="sc-val" style="color:'+col(eM)+'">'+fmt(eM)+'</span></td></tr>';
+  for(var i=0;i<n;i++){
+    var cp=0; for(var k=0;k<i;k++) cp+=LI[k];
+    var ei=W[i]-STAKE-cp;
+    bh+='<tr><td>Bancata P'+(i+1)+' vince</td>';
+    for(var j=0;j<n;j++){
+      if(j<i) bh+='<td style="color:#16a25a">✓</td>';
+      else if(j===i) bh+='<td style="color:#dc3545">✗</td>';
+      else bh+='<td style="color:#c5c9d8">—</td>';
+    }
+    bh+='<td><span class="sc-val" style="color:'+col(ei)+'">'+fmt(ei)+'</span></td></tr>';
+  }
+  sb.innerHTML=bh;
+  fbSave();
+}
+
+function set(id,v){var e=document.getElementById(id);if(e)e.textContent=v;}
+function fmt(n){return (n>=0?'+':'-')+'€'+Math.abs(n).toFixed(2);}
+function col(n){return n>0.005?'#16a25a':n<-0.005?'#dc3545':'#8890aa';}
+function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════════════════
+// RENDER RIEPILOGO
+// Costruisce le card UNA VOLTA con createElement.
+// calc() non la chiama mai: aggiorna solo i div
+// rp_S0, rp_L0, ecc. via set()
+// ══════════════════════════════════════════════
+function renderSummary() {
+  var wrap = document.getElementById('rp_wrap');
+  wrap.innerHTML = '';
+  var n = M.length;
+
+  for (var i = 0; i < n; i++) {
+    (function(idx) {
+      var m = M[idx];
+      var lk = m.locked;
+
+      // Card container
+      var card = document.createElement('div');
+      card.className = 'rp-card' + (lk ? ' rp-locked' : '');
+      card.id = 'rp_card' + idx;
+
+      // ── riga superiore: badge + nome + stato ──
+      var top = document.createElement('div');
+      top.className = 'rp-top';
+
+      var badge = document.createElement('span');
+      badge.className = 'rp-badge ' + (lk ? 'rp-badge-lock' : 'rp-badge-open');
+      badge.textContent = 'P' + (idx+1);
+      top.appendChild(badge);
+
+      var nameInp = document.createElement('input');
+      nameInp.type = 'text';
+      nameInp.className = 'rp-name';
+      nameInp.value = m.name;
+      nameInp.placeholder = 'Nome partita…';
+      nameInp.disabled = lk;
+      nameInp.addEventListener('input', (function(ii){ return function(){
+        M[ii].name = this.value;
+        // aggiorna titolo sezione bancata
+        var t = document.querySelector('#ph'+ii+' .ph-title');
+        if(t) t.textContent='Bancata P'+(ii+1)+' — '+(M[ii].name||'Partita '+(ii+1));
+      };})(idx));
+      top.appendChild(nameInp);
+
+      var stag = document.createElement('span');
+      stag.className = 'rp-statetag ' + (lk ? 'rp-statetag-lock' : 'rp-statetag-open');
+      stag.textContent = lk ? '🔒 bloccata' : 'in attesa';
+      top.appendChild(stag);
+
+      card.appendChild(top);
+
+      // ── riga campi ──
+      var fields = document.createElement('div');
+      fields.className = 'rp-fields';
+
+      // helper per creare un campo con label
+      function mkF(labelText, el) {
+        var f = document.createElement('div');
+        f.className = 'rp-field';
+        var sp = document.createElement('span');
+        sp.textContent = labelText;
+        f.appendChild(sp);
+        f.appendChild(el);
+        return f;
+      }
+
+      // Data
+      var inpDate = document.createElement('input');
+      inpDate.type = 'date'; inpDate.className = 'rp-dt'; inpDate.style.width='130px';
+      inpDate.value = m.date; inpDate.disabled = lk;
+      inpDate.addEventListener('change', (function(ii){ return function(){
+        M[ii].date = this.value; scheduleAlert(ii); calc();
+      };})(idx));
+      fields.appendChild(mkF('Data', inpDate));
+
+      // Ora
+      var inpTime = document.createElement('input');
+      inpTime.type = 'time'; inpTime.className = 'rp-dt'; inpTime.style.width='100px';
+      inpTime.value = m.time; inpTime.disabled = lk;
+      inpTime.addEventListener('change', (function(ii){ return function(){
+        M[ii].time = this.value; scheduleAlert(ii);
+      };})(idx));
+      fields.appendChild(mkF('Ora kick-off', inpTime));
+
+      // Divider
+      var d1 = document.createElement('div'); d1.className='rp-sep'; fields.appendChild(d1);
+
+      // Quota punta (BACK) — grande, blu
+      var inpBack = document.createElement('input');
+      inpBack.type = 'number'; inpBack.className = 'rp-q';
+      inpBack.step = '0.01'; inpBack.value = m.back.toFixed(2);
+      inpBack.disabled = lk;
+      inpBack.addEventListener('input', (function(ii){ return function(){
+        M[ii].back = parseFloat(this.value) || 0; calc();
+      };})(idx));
+      fields.appendChild(mkF('Quota punta', inpBack));
+
+      // Quota banca (LAY) — grande, gialla se aggiornabile
+      var inpLay = document.createElement('input');
+      inpLay.type = 'number';
+      inpLay.className = 'rp-q' + (idx > 0 && !lk ? ' rp-lay' : '');
+      inpLay.step = '0.01'; inpLay.value = m.lay.toFixed(2);
+      inpLay.disabled = lk;
+      inpLay.addEventListener('input', (function(ii){ return function(){
+        var v = parseFloat(this.value) || 0;
+        M[ii].lay = v; M[ii].lay_init = v;
+        // sincronizza input nella sezione bancata (senza ricostruire)
+        var ph = document.getElementById('lay_ph'+ii);
+        if (ph) ph.value = v.toFixed(2);
+        calc();
+      };})(idx));
+      var layLbl = 'Quota banca' + (idx > 0 && !lk ? ' ↻ aggiorna' : '');
+      fields.appendChild(mkF(layLbl, inpLay));
+
+      // Divider
+      var d2 = document.createElement('div'); d2.className='rp-sep'; fields.appendChild(d2);
+
+      // Stake output
+      var oS = document.createElement('div'); oS.className='rp-out';
+      oS.innerHTML='<div class="rp-out-lbl">Stake</div><div class="rp-out-val" id="rp_S'+idx+'">—</div>';
+      fields.appendChild(oS);
+
+      // Liability output
+      var oL = document.createElement('div'); oL.className='rp-out';
+      oL.innerHTML='<div class="rp-out-lbl">Liability</div><div class="rp-out-val rp-red" id="rp_L'+idx+'">—</div>';
+      fields.appendChild(oL);
+
+      card.appendChild(fields);
+      wrap.appendChild(card);
+    })(i);
+  }
+}
+
+// ══════════════════════════════════════════════
+// RENDER SEZIONI BANCATA
+// ══════════════════════════════════════════════
+function renderPhases() {
+  var container = document.getElementById('phases');
+  container.innerHTML = '';
+  var n = M.length;
+
+  for (var i = 0; i < n; i++) {
+    (function(idx) {
+      var m = M[idx];
+
+      var sep = document.createElement('div');
+      sep.className = 'sep';
+      sep.textContent = idx===0
+        ? 'Sezione 1 — Bancata P1 · piazza subito'
+        : 'Sezione '+(idx+1)+' — Bancata P'+(idx+1)+' · solo se P'+idx+' non ha coperto';
+      container.appendChild(sep);
+
+      var card = document.createElement('div');
+      card.className = 'card'+(idx===0?'':m.locked?' card-ok':' card-warn');
+      card.id = 'ph'+idx;
+
+      var phNum = idx===0 ? '1' : m.locked ? '✓' : ''+(idx+1);
+      var phCls = idx===0 ? 'ph-blue' : m.locked ? 'ph-green' : 'ph-yellow';
+      var phSub = idx===0 ? 'Piazza la bancata P1 sull\'exchange'
+        : m.locked ? 'Bancata già piazzata 🔒 — valore congelato'
+        : 'Aggiorna la quota banca se è cambiata, poi piazza';
+
+      var html = '<div class="ph-hdr">'
+        +'<div class="ph-num '+phCls+'">'+phNum+'</div>'
+        +'<div><div class="ph-title">Bancata P'+(idx+1)+' — '+esc(m.name||'Partita '+(idx+1))+'</div>'
+        +'<div class="ph-sub">'+phSub+'</div></div>'
+        +(n>1?'<button class="rm-btn" onclick="removeMatch('+idx+')">rimuovi</button>':'')
+        +'</div>';
+
+      // Liability bloccate precedenti
+      if (idx > 0) {
+        var lb='';
+        for (var k=0;k<idx;k++) lb+='<div><label>Liability P'+(k+1)+' <span class="tag tl">🔒</span></label><div class="lval" id="FL'+idx+'_'+k+'">—</div></div>';
+        html+='<div class="g'+Math.min(idx,3)+'" style="margin-bottom:12px">'+lb+'</div>';
+      }
+
+      // Quota banca nella sezione
+      if (m.locked) {
+        html+='<div style="margin-bottom:12px"><label>Quota banca P'+(idx+1)+' <span class="tag tl">🔒 congelata</span></label><div class="lval" style="max-width:130px">'+m.lay.toFixed(2)+'</div></div>';
+      } else {
+        html+='<div style="margin-bottom:12px;max-width:200px">'
+          +'<label>Quota banca P'+(idx+1)+(idx>0?' <span class="tag ty">aggiorna se cambiata</span>':'')+'</label>'
+          +'<input type="number" id="lay_ph'+idx+'" value="'+m.lay.toFixed(2)+'" step="0.01"'+(idx>0?' class="ilay"':'')+' oninput="onPhLay('+idx+',this.value)">'
+          +'</div>';
+      }
+
+      html+='<hr><div class="g3">'
+        +'<div class="mv"><div class="ml">Stake P'+(idx+1)+'</div><div class="mval" id="S'+idx+'">—</div></div>'
+        +'<div class="mv"><div class="ml">Liability P'+(idx+1)+'</div><div class="mval red" id="L'+idx+'">—</div></div>'
+        +'<div class="mv"><div class="ml">Profitto se banca vince</div><div class="mval green" id="W'+idx+'">—</div></div>'
+        +'</div>';
+
+      if (m.locked) {
+        html+='<div style="margin-top:11px;display:flex;align-items:center;gap:9px">'
+          +'<span style="font-size:11px;font-family:IBM Plex Mono,monospace;color:#16a25a">🔒 Bancata piazzata — stake congelato</span>'
+          +'<button style="font-family:IBM Plex Mono,monospace;font-size:10px;padding:3px 10px;border-radius:6px;background:#fff;border:1px solid #dde0ea;color:#9ba3bb;cursor:pointer" onclick="unlockPhase('+idx+')">sblocca</button>'
+          +'</div>';
+      } else {
+        html+='<div style="margin-top:11px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">'
+          +'<button class="lock-btn-g" onclick="lockPhase('+idx+')">🔒 Ho piazzato questa bancata — blocca</button>';
+        if ((idx+2)<=n) html+='<button class="cron-btn" id="cronbtn'+idx+'" onclick="scheduleCron('+idx+')">☁️ Programma allerta P'+(idx+2)+'</button>'
+          +'<span id="cronst'+idx+'" style="font-size:11px;font-family:IBM Plex Mono,monospace;color:#9ba3bb"></span>';
+        html+='</div>';
+      }
+      if ((idx+2)<=n) {
+        html+='<div style="margin-top:8px;display:flex;align-items:center;gap:8px">'
+          +'<span style="font-size:10px;font-family:IBM Plex Mono,monospace;color:#9ba3bb">Alert P'+(idx+2)+':</span>'
+          +'<span class="badge bd-idle" id="tbadge'+idx+'">→ P'+(idx+2)+'</span></div>';
+      }
+
+      card.innerHTML = html;
+      container.appendChild(card);
+    })(i);
+  }
+}
+
+// ══════════════════════════════════════════════
+// RENDER PRINCIPALE
+// Chiamato SOLO su eventi strutturali:
+// avvio, addMatch, removeMatch, lockPhase, unlockPhase
+// ══════════════════════════════════════════════
+function render() {
+  renderSummary();
+  renderPhases();
+  calc();
+  setTimeout(function(){
+    for (var k in timers) if(timers[k]&&timers[k].scheduledAt) tickBadge(parseInt(k));
+  },0);
+}
+
+// Cambio quota banca dalla SEZIONE → sincronizza riepilogo senza ricostruire il DOM
+function onPhLay(idx, val) {
+  var v = parseFloat(val)||0;
+  M[idx].lay = v; M[idx].lay_init = v;
+  // aggiorna l'input del riepilogo direttamente (è già nel DOM)
+  var rpWrap = document.getElementById('rp_card'+idx);
+  if (rpWrap) {
+    var inputs = rpWrap.querySelectorAll('input.rp-q');
+    // il secondo input rp-q è la quota banca
+    if (inputs.length >= 2) inputs[1].value = v.toFixed(2);
+  }
+  calc();
+}
+
+// ══════════════════════════════════════════════
+// LOCK / UNLOCK
+// ══════════════════════════════════════════════
+function lockPhase(i) {
+  var r = compute();
+  for (var k=0;k<=i;k++) {
+    if (!M[k].locked) {
+      M[k].locked=true; M[k].fS=r.S[k]; M[k].fLI=r.LI[k]; M[k].fW=r.W[k];
+    }
+  }
+  render();
+}
+function unlockPhase(i) {
+  for (var k=i;k<M.length;k++) {
+    M[k].locked=false; M[k].fS=M[k].fLI=M[k].fW=null; M[k].lay=M[k].lay_init;
+  }
+  render();
+}
+
+// ══════════════════════════════════════════════
+// CRUD
+// ══════════════════════════════════════════════
+function addMatch() {
+  M.push({name:'',back:1.50,lay_init:1.55,lay:1.55,date:'',time:'',locked:false,fS:null,fLI:null,fW:null});
+  render();
+}
+function removeMatch(i) {
+  if (M.length<=1) return;
+  if (timers[i]&&timers[i].timeoutId) clearTimeout(timers[i].timeoutId);
+  delete timers[i]; M.splice(i,1); render();
+}
+
+// ══════════════════════════════════════════════
+// TIMER / BADGE / ALERT
+// ══════════════════════════════════════════════
+function scheduleAlert(j) {
+  var m=M[j]; if(!m.time) return;
+  if(timers[j]&&timers[j].timeoutId) clearTimeout(timers[j].timeoutId);
+  if((j+2)>M.length) return;
+  var kickoff=new Date();
+  if(m.date){var p=m.date.split('-');kickoff=new Date(+p[0],+p[1]-1,+p[2]);}
+  var tp=m.time.split(':'); kickoff.setHours(+tp[0],+tp[1],0,0);
+  if(!m.date&&kickoff<new Date()) kickoff.setDate(kickoff.getDate()+1);
+  var alertAt=new Date(kickoff.getTime()+ALERT_DELAY), delay=alertAt-new Date();
+  timers[j]={scheduledAt:alertAt,fired:false,
+    timeoutId:delay>0?setTimeout(function(){fireAlert(j);},delay):null};
+  tickBadge(j);
+}
+function fireAlert(j) {
+  timers[j].fired=true;
+  var m=M[j], af=j+2;
+  var nome=m.name||'Partita '+(j+1), data=m.date?fmtDate(m.date):'';
+  var txt='⚠️ BANCA ORA — P'+af+'!\n\nSono passate '+ALERT_DELAY/3600000+'h da: '+nome+(data?' ('+data+')':'')+'\n👉 Piazza subito la bancata P'+af+' sull\'exchange.';
+  sendTG(txt); showToast('⚠️ Banca P'+af+'! — '+nome); tickBadge(j);
+}
+function tickBadge(j) {
+  var el=document.getElementById('tbadge'+j); if(!el) return;
+  var af=j+2;
+  if(af>M.length){el.className='badge bd-last';el.textContent='ultima';return;}
+  var t=timers[j];
+  if(!t||!t.scheduledAt){el.className='badge bd-idle';el.textContent='→ P'+af;return;}
+  if(t.fired){el.className='badge bd-ring';el.textContent='🔔 BANCA P'+af;return;}
+  var diff=t.scheduledAt-new Date();
+  if(diff<=0){el.className='badge bd-ring';el.textContent='🔔 BANCA P'+af;return;}
+  var hh=Math.floor(diff/3600000),mm=Math.floor((diff%3600000)/60000),ss=Math.floor((diff%60000)/1000);
+  el.className='badge '+(diff<15*60*1000?'bd-soon':'bd-act');
+  el.textContent=hh+'h '+pad(mm)+'m '+pad(ss)+'s';
+  setTimeout(function(){tickBadge(j);},1000);
+}
+function pad(n){return n<10?'0'+n:n;}
+function fmtDate(s){var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+
+// ══════════════════════════════════════════════
+// CRON-JOB
+// ══════════════════════════════════════════════
+async function scheduleCron(j) {
+  var m=M[j], af=j+2;
+  if(!m.date||!m.time){alert('Inserisci data e ora della P'+(j+1)+' prima di programmare.');return;}
+  if(af>M.length){alert('Ultima partita, nessuna bancata successiva.');return;}
+  var p=m.date.split('-'), ko=new Date(+p[0],+p[1]-1,+p[2]);
+  var tp=m.time.split(':'); ko.setHours(+tp[0],+tp[1],0,0);
+  var alertAt=new Date(ko.getTime()+ALERT_DELAY);
+  var nome=m.name||'Partita '+(j+1), data=fmtDate(m.date);
+  var msg=encodeURIComponent('⚠️ BANCA ORA — P'+af+'!\n\nSono passate '+ALERT_DELAY/3600000+'h da: '+nome+' ('+data+')\n👉 Piazza subito la bancata P'+af+'.');
+  var tgUrl='https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage?chat_id='+TG_CHAT_ID+'&text='+msg;
+  var btn=document.getElementById('cronbtn'+j), st=document.getElementById('cronst'+j);
+  if(btn){btn.disabled=true;btn.textContent='Programmazione...';}
+  try {
+    var body={job:{url:tgUrl,enabled:true,saveResponses:false,title:'Banca P'+af+' — '+nome,
+      schedule:{timezone:'Europe/Rome',expiresAt:Math.floor(alertAt.getTime()/1000)+300,
+        hours:[alertAt.getHours()],minutes:[alertAt.getMinutes()],
+        mdays:[alertAt.getDate()],months:[alertAt.getMonth()+1],wdays:[-1]},
+      requestMethod:0}};
+    var res=await fetch('https://api.cron-job.org/jobs',{method:'PUT',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+CRON_KEY},
+      body:JSON.stringify(body)});
+    var data=await res.json();
+    if(res.ok&&(data.jobId||data.job)){
+      var ora=alertAt.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'});
+      var gg=alertAt.toLocaleDateString('it-IT');
+      if(st){st.textContent='✅ '+gg+' alle '+ora;st.style.color='#16a25a';}
+      if(btn){btn.textContent='✅ Programmato';btn.style.borderColor='#7de0b0';btn.style.color='#16a25a';}
+    } else throw new Error(JSON.stringify(data));
+  } catch(e) {
+    if(st){st.textContent='❌ '+e.message;st.style.color='#dc3545';}
+    if(btn){btn.disabled=false;btn.textContent='☁️ Programma allerta P'+af;}
+  }
+}
+
+// ══════════════════════════════════════════════
+// TELEGRAM / TOAST
+// ══════════════════════════════════════════════
+async function sendTG(text) {
+  try { await fetch('https://api.telegram.org/bot'+TG_TOKEN+'/sendMessage',
+    {method:'POST',headers:{'Content-Type':'application/json'},
+     body:JSON.stringify({chat_id:TG_CHAT_ID,text:text})}); } catch(e){}
+}
+function showToast(msg) {
+  document.getElementById('toast_msg').textContent=msg;
+  document.getElementById('toast').classList.add('show');
+  try {
+    var ctx=new(window.AudioContext||window.webkitAudioContext)();
+    [0,.3,.6].forEach(function(t){
+      var o=ctx.createOscillator(),g=ctx.createGain(); o.connect(g); g.connect(ctx.destination);
+      o.frequency.value=880; g.gain.setValueAtTime(.4,ctx.currentTime+t);
+      g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+t+.25);
+      o.start(ctx.currentTime+t); o.stop(ctx.currentTime+t+.25);
+    });
+  } catch(e){}
+  setTimeout(hideToast,30000);
+}
+function hideToast(){document.getElementById('toast').classList.remove('show');}
+
+// ══════════════════════════════════════════════
+// FIREBASE SYNC
+// ══════════════════════════════════════════════
+var _fbApp = null, _fbDb = null, _fbUnsub = null, _fbDocId = 'sessione1';
+var _fbSaving = false, _fbSaveTimer = null, _fbRemoteLoad = false;
+
+function fbCfgFromStorage() {
+  try { return JSON.parse(localStorage.getItem('fb_cfg') || 'null'); } catch(e){ return null; }
+}
+function saveFbCfgToStorage(cfg) {
+  try { localStorage.setItem('fb_cfg', JSON.stringify(cfg)); } catch(e){}
+}
+
+function syncStatus(state, text) {
+  var bar = document.getElementById('sync_bar');
+  var dot = document.getElementById('sync_dot');
+  var txt = document.getElementById('sync_txt');
+  var states = {
+    off:  ['sb-off','sd-off'],
+    ok:   ['sb-ok','sd-ok'],
+    err:  ['sb-err','sd-err'],
+    sync: ['sb-sync','sd-sync']
+  };
+  bar.className = 'sync-bar ' + (states[state]||['sb-off','sd-off'])[0];
+  dot.className = 'sync-dot ' + (states[state]||['sb-off','sd-off'])[1];
+  txt.innerHTML = text;
+}
+
+async function initFirebase(cfg) {
+  var mods = window._fbModules;
+  if (!mods) { syncStatus('err','❌ Moduli Firebase non caricati — ricarica la pagina'); return false; }
+  try {
+    var fbCfg = { apiKey: cfg.apiKey, authDomain: cfg.authDomain, projectId: cfg.projectId };
+    if (_fbUnsub) { _fbUnsub(); _fbUnsub = null; }
+    _fbApp = mods.initializeApp(fbCfg, 'cov-'+Date.now());
+    _fbDb  = mods.getFirestore(_fbApp);
+    _fbDocId = cfg.docId || 'sessione1';
+    syncStatus('sync','⟳ Connessione a Firebase…');
+
+    // Listener in tempo reale
+    var docRef = mods.doc(_fbDb, 'copertura', _fbDocId);
+    _fbUnsub = mods.onSnapshot(docRef, function(snap) {
+      if (!snap.exists()) { syncStatus('ok','☁️ Connesso — nessun dato salvato ancora'); return; }
+      var data = snap.data();
+      if (_fbSaving) return; // ignore echo of our own save
+      _fbRemoteLoad = true;
+      // Ripristina stato
+      if (data.M) {
+        M = data.M;
+        M.forEach(function(m){ m.fS=m.fS||null; m.fLI=m.fLI||null; m.fW=m.fW||null; });
+      }
+      if (data.stake) document.getElementById('inp_stake').value = data.stake;
+      if (data.multi) document.getElementById('inp_multi').value = data.multi;
+      if (data.comm)  document.getElementById('inp_comm').value  = data.comm;
+      render();
+      _fbRemoteLoad = false;
+      var d = new Date(data.ts||Date.now());
+      syncStatus('ok','☁️ Sincronizzato · ultimo salvataggio: '+d.toLocaleTimeString('it-IT') + ' — <a onclick="openFbModal()">⚙️</a>');
+    }, function(err) {
+      syncStatus('err','❌ Errore Firestore: '+err.message+' — <a onclick="openFbModal()">riprova</a>');
+    });
+    return true;
+  } catch(e) {
+    syncStatus('err','❌ '+e.message+' — <a onclick="openFbModal()">⚙️ riconfigura</a>');
+    return false;
+  }
+}
+
+function fbSave() {
+  if (!_fbDb || _fbRemoteLoad) return;
+  if (_fbSaveTimer) clearTimeout(_fbSaveTimer);
+  _fbSaveTimer = setTimeout(async function() {
+    var mods = window._fbModules;
+    if (!mods) return;
+    _fbSaving = true;
+    syncStatus('sync','⟳ Salvataggio…');
+    try {
+      var docRef = mods.doc(_fbDb, 'copertura', _fbDocId);
+      await mods.setDoc(docRef, {
+        M: M,
+        stake: document.getElementById('inp_stake').value,
+        multi: document.getElementById('inp_multi').value,
+        comm:  document.getElementById('inp_comm').value,
+        ts: Date.now()
+      });
+      var d = new Date();
+      syncStatus('ok','☁️ Salvato · '+d.toLocaleTimeString('it-IT')+' — <a onclick="openFbModal()">⚙️</a>');
+    } catch(e) {
+      syncStatus('err','❌ Salvataggio fallito: '+e.message);
+    }
+    setTimeout(function(){ _fbSaving = false; }, 500);
+  }, 800); // debounce 800ms
+}
+
+function openFbModal() {
+  var cfg = fbCfgFromStorage() || {};
+  document.getElementById('fb_apiKey').value     = cfg.apiKey     || '';
+  document.getElementById('fb_authDomain').value = cfg.authDomain || '';
+  document.getElementById('fb_projectId').value  = cfg.projectId  || '';
+  document.getElementById('fb_docId').value      = cfg.docId      || 'sessione1';
+  document.getElementById('fb_modal_st').textContent = '';
+  document.getElementById('fb_modal').style.display = 'flex';
+}
+function closeFbModal() {
+  document.getElementById('fb_modal').style.display = 'none';
+}
+async function saveFbCfg() {
+  var cfg = {
+    apiKey:     document.getElementById('fb_apiKey').value.trim(),
+    authDomain: document.getElementById('fb_authDomain').value.trim(),
+    projectId:  document.getElementById('fb_projectId').value.trim(),
+    docId:      document.getElementById('fb_docId').value.trim() || 'sessione1'
+  };
+  if (!cfg.apiKey || !cfg.projectId) {
+    document.getElementById('fb_modal_st').textContent = '❌ Inserisci almeno API Key e Project ID';
+    document.getElementById('fb_modal_st').style.color = '#dc3545';
+    return;
+  }
+  document.getElementById('fb_modal_st').textContent = 'Connessione…';
+  document.getElementById('fb_modal_st').style.color = '#9ba3bb';
+  var ok = await initFirebase(cfg);
+  if (ok) {
+    saveFbCfgToStorage(cfg);
+    closeFbModal();
+  } else {
+    document.getElementById('fb_modal_st').textContent = '❌ Connessione fallita — controlla le credenziali';
+    document.getElementById('fb_modal_st').style.color = '#dc3545';
+  }
+}
+function disconnectFb() {
+  if (_fbUnsub) { _fbUnsub(); _fbUnsub=null; }
+  _fbApp=null; _fbDb=null;
+  try { localStorage.removeItem('fb_cfg'); } catch(e){}
+  syncStatus('off','Sincronizzazione cloud disattivata — <a onclick="openFbModal()">configura Firebase</a>');
+  closeFbModal();
+}
+
+// chiudi modal cliccando fuori
+document.getElementById('fb_modal').addEventListener('click', function(e){
+  if (e.target === this) closeFbModal();
+});
+
+// ══════════════════════════════════════════════
+// AVVIO
+// ══════════════════════════════════════════════
+loadCfg();
+populateCfgUI();
+render();
+// Auto-connetti Firebase se già configurato
+setTimeout(function(){
+  var fbCfg = fbCfgFromStorage();
+  if (fbCfg && fbCfg.apiKey) initFirebase(fbCfg);
+}, 100);
+</script>
+</body>
+</html>
